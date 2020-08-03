@@ -30,6 +30,7 @@ In this final project, you will implement the missing parts in the schematic. To
 ## Basic Build Instructions
 
 1. Clone this repo.
+1.1. Important: Download the YoloV3 weights in the folder dat/yolo using the command wget https://pjreddie.com/media/files/yolov3.weights 
 2. Make a build directory in the top level project directory: `mkdir build && cd build`
 3. Compile: `cmake .. && make`
 4. Run it: `./3D_object_tracking`.
