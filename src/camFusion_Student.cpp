@@ -154,5 +154,19 @@ void computeTTCLidar(std::vector<LidarPoint> &lidarPointsPrev,
 
 void matchBoundingBoxes(std::vector<cv::DMatch> &matches, std::map<int, int> &bbBestMatches, DataFrame &prevFrame, DataFrame &currFrame)
 {
-    // ...
+    // for all keypoint matches...
+    for(auto it: matches)
+    {
+        //Which BB belongs to keypoints KP1 on prevFrame?
+        
+        //(*it).queryIdx //keypoint id on prevFrame
+        //(*it).trainIdx //keypoint id on currFrame
+        
+
+
+    }
+
+    
+
+    //
 }
