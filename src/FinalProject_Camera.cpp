@@ -145,7 +145,7 @@ int main(int argc, const char *argv[])
         
         
         // REMOVE THIS LINE BEFORE PROCEEDING WITH THE FINAL PROJECT
-        continue; // skips directly to the next image without processing what comes beneath
+        //continue; // skips directly to the next image without processing what comes beneath
 
         /* DETECT IMAGE KEYPOINTS */
 
@@ -164,7 +164,7 @@ int main(int argc, const char *argv[])
         else if (detectorType.compare("HARRIS") == 0)
         {   
             detKeypointsHarris(keypoints, imgGray, false);
-            //...
+            
         }
         else
         {
@@ -221,7 +221,7 @@ int main(int argc, const char *argv[])
             (dataBuffer.end() - 1)->kptMatches = matches;
 
             cout << "#7 : MATCH KEYPOINT DESCRIPTORS done" << endl;
-
+    
             
             /* TRACK 3D OBJECT BOUNDING BOXES */
 

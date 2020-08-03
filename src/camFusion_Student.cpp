@@ -153,20 +153,102 @@ void computeTTCLidar(std::vector<LidarPoint> &lidarPointsPrev,
 
 
 void matchBoundingBoxes(std::vector<cv::DMatch> &matches, std::map<int, int> &bbBestMatches, DataFrame &prevFrame, DataFrame &currFrame)
-{
+{   
+    bool printDebugMsg = false;
+    bool bWait = false;
+    std::map<std::pair<int, int>, int> possibleBBMatches; 
+    std::multimap<int, std::pair<int, int>>rv_possibleBBMatches;
     // for all keypoint matches...
-    for(auto it: matches)
-    {
-        //Which BB belongs to keypoints KP1 on prevFrame?
+    for(auto &it: matches)
+    {   
         
-        //(*it).queryIdx //keypoint id on prevFrame
-        //(*it).trainIdx //keypoint id on currFrame
-        
+        if(printDebugMsg) cout << endl << "Loop for Match with prev keypoint: " << it.queryIdx << " and current keypoint " << it.trainIdx <<endl; 
 
+        //Check if the prev keypoint (queryIdx) is within one or more boundary box(es) in the previous Frame
+        for (auto &bb: prevFrame.boundingBoxes)
+        {   
+           
+
+            if( bb.roi.contains(prevFrame.keypoints[it.queryIdx].pt))
+            {   
+                if(printDebugMsg)
+                {
+                    
+                    cout <<" PrevFrame: Keypoint  "  << it.queryIdx <<  " found on BB " << bb.boxID <<  endl;
+                    
+                    //cout << "Keypoint  with ID " << it.queryIdx << " and position x: " << prevFrame.keypoints[it.queryIdx].pt.x << ", y: " << prevFrame.keypoints[it.queryIdx].pt.y << endl;
+                    //cout << "Is inside BoundaryBox with ID " << bb.boxID <<  "and position x: " << bb.roi.x  << ", y: " << bb.roi.x << ", width :" << bb.roi.width<< ", height: "<< bb.roi.height<< endl;
+                }
+                        //Check if the current keypoint (trainIdx) is within one or more boundary box(es) in the previous Frame
+                for (auto &bb2: currFrame.boundingBoxes)
+                {   
+                    if( bb2.roi.contains(currFrame.keypoints[it.trainIdx].pt))
+                    {   
+                        if(printDebugMsg)
+                        {
+                        
+                            cout <<"currFrame: Keypoint  "  << it.trainIdx <<  " found on BB " << bb2.boxID <<  endl;
+                            //cout << "Keypoint (curr) with ID " << it.trainIdx << " and position x: " << currFrame.keypoints[it.trainIdx].pt.x << ", y: " << currFrame.keypoints[it.trainIdx].pt.y << endl;
+                            //cout << "Is inside BoundaryBox with ID " << bb2.boxID <<  "and position x: " << bb2.roi.x  << ", y: " << bb2.roi.x << ", width :" << bb2.roi.width<< ", height: "<< bb2.roi.height<< endl;
+                            cout <<"Possible BB match. Prev Frame BB: "  << bb.boxID <<  " Curr Frame BB: " << bb2.boxID <<  endl;
+                            if(bWait) cv::waitKey(0);
+                        }
+
+                        //Check if first occurence of this pair B1-B2
+                        if(possibleBBMatches.count(pair<int,int>(bb.boxID,bb2.boxID))==0)
+                        {   
+                            //If yes, insert {{B1,B2},0} on possibleBBmatches
+                            possibleBBMatches.insert(pair<pair<int,int>,int>(make_pair(bb.boxID,bb2.boxID),1));
+                        }
+                        else
+                        {   
+                            //if already inserted in list, increment the counter of {{B1,B2},counter}
+                            possibleBBMatches.find(pair<int,int>(bb.boxID,bb2.boxID))->second++;
+                        }
+                        
+                         
+
+                    }
+                    
+                }
+
+            }
+               
+        }
 
     }
+    if(printDebugMsg)
+        {   
+            cout << endl << endl<< "Possible matches report" << endl;
+            for (auto &it : possibleBBMatches) cout << "{" << it.first.first << ", "<< it.first.second << "}" << " Counter: " << it.second << endl;
 
+        }
     
-
     //
+    for (auto &it : possibleBBMatches)
+    {   
+
+        rv_possibleBBMatches.insert(pair<int, pair<int,int>>(it.second,make_pair(it.first.first, it.first.second)));
+
+    }
+    if(printDebugMsg)
+        {   
+            cout << endl << endl<< "Possible BB matches in order" << endl;
+            for (auto &it : rv_possibleBBMatches) cout << "{" << it.second.first << ", "<< it.second.second << "}" << " Counter: " << it.first << endl;
+
+        }
+
+    for (auto rit=rv_possibleBBMatches.rbegin(); rit!=rv_possibleBBMatches.rend(); ++rit)
+    {   
+        //to-do : check if second BB is also not being repeated
+        bbBestMatches.insert(make_pair(rit->second.first,rit->second.second));
+    }
+    
+    if(printDebugMsg)
+        {   
+            cout << endl << endl<< "Best matches return value" << endl;
+            for (auto it:bbBestMatches) cout << "{" << it.first << ", "<< it.second << "}"  << endl;
+
+        }
+    
 }
