@@ -148,8 +148,95 @@ void computeTTCCamera(std::vector<cv::KeyPoint> &kptsPrev, std::vector<cv::KeyPo
 
 void computeTTCLidar(std::vector<LidarPoint> &lidarPointsPrev,
                      std::vector<LidarPoint> &lidarPointsCurr, double frameRate, double &TTC)
-{
-    // ...
+{   
+    // auxiliary variables
+    bool printDebugMsg = true;
+    double dT = 0.1;        // time between two measurements in seconds
+    double laneWidth = 4.0; // assumed width of the ego lane (meters)
+    double closestPointsBufferInPercentage = 0.6 ;
+    std::set<double> closestPointsPrev,closestPointsCurr;
+    double medianClosestsPointPrev{0}, medianClosestsPointCurr{0};
+
+    /*
+    // find closest distance to Lidar points within ego lane 
+    double minXPrev = 1e9, minXCurr = 1e9;
+    for (auto it = lidarPointsPrev.begin(); it != lidarPointsPrev.end(); ++it)
+    {
+        cout << it->y << endl;
+        if (abs(it->y) <= laneWidth / 2.0)
+        { // 3D point within ego lane?
+            minXPrev = minXPrev > it->x ? it->x : minXPrev;
+        }
+    }
+
+    for (auto it = lidarPointsCurr.begin(); it != lidarPointsCurr.end(); ++it)
+    {
+        cout << it->y << endl;
+        if (abs(it->y) <= laneWidth / 2.0)
+        { // 3D point within ego lane?
+            minXCurr = minXCurr > it->x ? it->x : minXCurr;
+        }
+    }
+    */
+    // find "closestPointsBuffer" closests distances to Lidar points within ego lane and get median value (robustness solution)
+    for (auto it = lidarPointsPrev.begin(); it != lidarPointsPrev.end(); ++it)
+    {
+        
+        if (abs(it->y) <= laneWidth / 2.0)// 3D point within ego lane?
+        { 
+            closestPointsPrev.insert(it->x);
+        }
+    }
+     for (auto it = lidarPointsCurr.begin(); it != lidarPointsCurr.end(); ++it)
+    {
+        
+        if (abs(it->y) <= laneWidth / 2.0)// 3D point within ego lane?
+        { 
+            closestPointsCurr.insert(it->x);
+        }
+    }
+
+    //filter to get the closestPointsBufferInPercentage closest values
+    auto it = closestPointsPrev.begin();
+    
+    //Place it at the median value inside the closest "closestPointsBufferInPercentage"% 
+    for( int i=0; i<(closestPointsPrev.size()*closestPointsBufferInPercentage)/2;i++ ) it++;
+    medianClosestsPointPrev = (*it);
+
+    it = closestPointsCurr.begin();
+    //increments it to right after the closestPoints in the list 
+    for(int i=0; i<(closestPointsCurr.size()*closestPointsBufferInPercentage)/2;i++ ) it++; 
+    medianClosestsPointCurr = (*it);
+
+    // compute TTC from both measurements
+    TTC = medianClosestsPointCurr * dT / (medianClosestsPointPrev - medianClosestsPointCurr);
+
+     if(printDebugMsg)    
+    {   
+      
+        cout << endl << "ClosestsPointsPrev" << endl;
+       
+        auto itTemp =closestPointsPrev.begin();
+        for( int i=0; i<(closestPointsPrev.size()*closestPointsBufferInPercentage)/2;i++ )
+        {
+            cout << "[" << i << "] " << "x: " << *itTemp << endl;
+            itTemp++;
+        }
+        cout << "Median value is " << "x: " << medianClosestsPointPrev << endl;
+
+        cout << endl << "ClosestsPointsCurr" << endl;
+       
+        itTemp =closestPointsCurr.begin();
+        for ( int i=0; i<(closestPointsCurr.size()*closestPointsBufferInPercentage)/2;i++ )
+        {
+            cout << "[" << i << "] " << "x: " << *itTemp << endl;
+            itTemp++;
+        
+        }
+        cout << "Median value is " << "x: " << medianClosestsPointCurr << endl;
+
+        cout << "TTC: " << TTC << endl;
+    }
 }
 
 
