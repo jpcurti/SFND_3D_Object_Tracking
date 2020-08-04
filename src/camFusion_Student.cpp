@@ -4,6 +4,7 @@
 #include <numeric>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+#include <set>
 
 #include "camFusion.hpp"
 #include "dataStructures.h"
@@ -158,6 +159,7 @@ void matchBoundingBoxes(std::vector<cv::DMatch> &matches, std::map<int, int> &bb
     bool bWait = false;
     std::map<std::pair<int, int>, int> possibleBBMatches; 
     std::multimap<int, std::pair<int, int>>rv_possibleBBMatches;
+    std::set<int> k1s, k2s;
     // for all keypoint matches...
     for(auto &it: matches)
     {   
@@ -240,8 +242,15 @@ void matchBoundingBoxes(std::vector<cv::DMatch> &matches, std::map<int, int> &bb
 
     for (auto rit=rv_possibleBBMatches.rbegin(); rit!=rv_possibleBBMatches.rend(); ++rit)
     {   
-        //to-do : check if second BB is also not being repeated
-        bbBestMatches.insert(make_pair(rit->second.first,rit->second.second));
+        //This does not check if second BB is also not being repeated
+        //bbBestMatches.insert(make_pair(rit->second.first,rit->second.second));
+
+        //This does:
+        const auto insertion_k1 = k1s.insert(rit->second.first);
+        const auto insertion_k2 = k2s.insert(rit->second.second);
+        if (insertion_k1.second && insertion_k2.second) {
+            bbBestMatches.insert(make_pair(rit->second.first,rit->second.second));
+        }
     }
     
     if(printDebugMsg)
