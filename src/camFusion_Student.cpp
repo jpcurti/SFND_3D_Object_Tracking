@@ -5,6 +5,8 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <set>
+#include <iterator>
+#include<vector>
 
 #include "camFusion.hpp"
 #include "dataStructures.h"
@@ -133,8 +135,51 @@ void show3DObjects(std::vector<BoundingBox> &boundingBoxes, cv::Size worldSize, 
 
 // associate a given bounding box with the keypoints it contains
 void clusterKptMatchesWithROI(BoundingBox &boundingBox, std::vector<cv::KeyPoint> &kptsPrev, std::vector<cv::KeyPoint> &kptsCurr, std::vector<cv::DMatch> &kptMatches)
-{
-    // ...
+{   
+    bool printDebugMsg = false;
+    bool displayTime = true;
+
+    double t = (double)cv::getTickCount();
+    if(printDebugMsg) std::cout << "Calling function clusterKptMatchesWIthROI for boundingBox with id " << boundingBox.boxID << std::endl << std::endl;
+    
+    for(auto kptIt = kptsCurr.begin(); kptIt != kptsCurr.end(); kptIt++)
+    {
+        if(boundingBox.roi.contains(kptIt->pt))
+        {   
+            //if(printDebugMsg) std::cout << "Keypoint on position " << std::distance(kptsCurr.begin(), kptIt) << " found inside BB" << std::endl << std::endl;
+            boundingBox.keypoints.emplace_back(*kptIt);
+            //Search for match in kptMatches
+            
+            for( auto kptMatch = kptMatches.begin(); kptMatch != kptMatches.end(); kptMatch++)
+            {
+                if(kptMatch->trainIdx == std::distance(kptsCurr.begin(), kptIt) )
+                {   
+                    //if(printDebugMsg) std::cout << "Keypoint match for keypoint  " << std::distance(kptsCurr.begin(), kptIt) << " was inserted in BB" << std::endl << std::endl;
+                    boundingBox.kptMatches.emplace_back(*kptMatch);
+                }
+ 
+            }
+            
+        }
+    }
+    if(printDebugMsg)
+    {
+        std::cout << "Result from clusterKptMatchesWithROI for boundingBox with id " << boundingBox.boxID << std::endl ;
+        std::cout << boundingBox.keypoints.size() <<" Keypoints inside BB: " << std::endl ;
+        int count=0;
+        /*
+        for(auto i: boundingBox.keypoints)
+        {
+            std::cout <<" Keypoint " << count << " x: " << i.pt.x << " y: "<< i.pt.y << std::endl ;
+            count++;
+        }
+        */
+        std::cout << boundingBox.kptMatches.size() <<" Keypoints matches inside BB: " << std::endl ;
+       
+
+    }
+    t = ((double)cv::getTickCount() - t) / cv::getTickFrequency();
+    if (displayTime) cout << "ClusterKptMatchesWithROI took " << 1000 * t / 1.0 << " ms" << endl;
 }
 
 
@@ -142,7 +187,78 @@ void clusterKptMatchesWithROI(BoundingBox &boundingBox, std::vector<cv::KeyPoint
 void computeTTCCamera(std::vector<cv::KeyPoint> &kptsPrev, std::vector<cv::KeyPoint> &kptsCurr, 
                       std::vector<cv::DMatch> kptMatches, double frameRate, double &TTC, cv::Mat *visImg)
 {
-    // ...
+      // compute distance ratios between all matched keypoints
+    vector<double> distRatios; // stores the distance ratios for all keypoints between curr. and prev. frame
+    bool displayTime = true;
+
+    double t = (double)cv::getTickCount();
+    for (auto it1 = kptMatches.begin(); it1 != kptMatches.end() - 1; ++it1)
+    { // outer kpt. loop
+
+        // get current keypoint and its matched partner in the prev. frame
+        cv::KeyPoint kpOuterCurr = kptsCurr.at(it1->trainIdx);
+        cv::KeyPoint kpOuterPrev = kptsPrev.at(it1->queryIdx);
+
+        for (auto it2 = kptMatches.begin() + 1; it2 != kptMatches.end(); ++it2)
+        { // inner kpt.-loop
+
+            double minDist = 100.0; // min. required distance
+
+            // get next keypoint and its matched partner in the prev. frame
+            cv::KeyPoint kpInnerCurr = kptsCurr.at(it2->trainIdx);
+            cv::KeyPoint kpInnerPrev = kptsPrev.at(it2->queryIdx);
+
+            // compute distances and distance ratios
+            double distCurr = cv::norm(kpOuterCurr.pt - kpInnerCurr.pt);
+            double distPrev = cv::norm(kpOuterPrev.pt - kpInnerPrev.pt);
+
+            if (distPrev > std::numeric_limits<double>::epsilon() && distCurr >= minDist)
+            { // avoid division by zero
+
+                double distRatio = distCurr / distPrev;
+                distRatios.push_back(distRatio);
+            }
+        } // eof inner loop over all matched kpts
+    }     // eof outer loop over all matched kpts
+
+    // only continue if list of distance ratios is not empty
+    if (distRatios.size() == 0)
+    {
+        TTC = NAN;
+        return;
+    }
+
+
+    sort(distRatios.begin(), distRatios.end());
+
+    double medianDistRatio;
+
+    if(distRatios.size()==0)
+    {
+        medianDistRatio=0;
+    }
+
+    else if(distRatios.size()%2 == 0)
+    {
+        medianDistRatio = (distRatios[distRatios.size()/2] + distRatios[distRatios.size()/2-1]) /2;
+    }
+    else
+    {
+        medianDistRatio = distRatios[distRatios.size()/2];
+    }
+
+    
+    // compute camera-based TTC from distance ratios
+    double meanDistRatio = std::accumulate(distRatios.begin(), distRatios.end(), 0.0) / distRatios.size();
+
+    double dT = 1 / frameRate;
+    /*
+    TTC = -dT / (1 - meanDistRatio);
+    */
+     TTC = -dT / (1 - medianDistRatio);
+
+    t = ((double)cv::getTickCount() - t) / cv::getTickFrequency();
+    if (displayTime) cout << "ComputeTTCCamera took " << 1000 * t / 1.0 << " ms" << endl;
 }
 
 
@@ -150,34 +266,16 @@ void computeTTCLidar(std::vector<LidarPoint> &lidarPointsPrev,
                      std::vector<LidarPoint> &lidarPointsCurr, double frameRate, double &TTC)
 {   
     // auxiliary variables
-    bool printDebugMsg = true;
+    bool printDebugMsg = false;
     double dT = 0.1;        // time between two measurements in seconds
     double laneWidth = 4.0; // assumed width of the ego lane (meters)
     double closestPointsBufferInPercentage = 0.6 ;
     std::set<double> closestPointsPrev,closestPointsCurr;
     double medianClosestsPointPrev{0}, medianClosestsPointCurr{0};
+    bool displayTime = true;
 
-    /*
-    // find closest distance to Lidar points within ego lane 
-    double minXPrev = 1e9, minXCurr = 1e9;
-    for (auto it = lidarPointsPrev.begin(); it != lidarPointsPrev.end(); ++it)
-    {
-        cout << it->y << endl;
-        if (abs(it->y) <= laneWidth / 2.0)
-        { // 3D point within ego lane?
-            minXPrev = minXPrev > it->x ? it->x : minXPrev;
-        }
-    }
-
-    for (auto it = lidarPointsCurr.begin(); it != lidarPointsCurr.end(); ++it)
-    {
-        cout << it->y << endl;
-        if (abs(it->y) <= laneWidth / 2.0)
-        { // 3D point within ego lane?
-            minXCurr = minXCurr > it->x ? it->x : minXCurr;
-        }
-    }
-    */
+    double t = (double)cv::getTickCount();
+    
     // find "closestPointsBuffer" closests distances to Lidar points within ego lane and get median value (robustness solution)
     for (auto it = lidarPointsPrev.begin(); it != lidarPointsPrev.end(); ++it)
     {
@@ -187,7 +285,7 @@ void computeTTCLidar(std::vector<LidarPoint> &lidarPointsPrev,
             closestPointsPrev.insert(it->x);
         }
     }
-     for (auto it = lidarPointsCurr.begin(); it != lidarPointsCurr.end(); ++it)
+    for (auto it = lidarPointsCurr.begin(); it != lidarPointsCurr.end(); ++it)
     {
         
         if (abs(it->y) <= laneWidth / 2.0)// 3D point within ego lane?
@@ -211,7 +309,7 @@ void computeTTCLidar(std::vector<LidarPoint> &lidarPointsPrev,
     // compute TTC from both measurements
     TTC = medianClosestsPointCurr * dT / (medianClosestsPointPrev - medianClosestsPointCurr);
 
-     if(printDebugMsg)    
+    if(printDebugMsg)    
     {   
       
         cout << endl << "ClosestsPointsPrev" << endl;
@@ -237,6 +335,8 @@ void computeTTCLidar(std::vector<LidarPoint> &lidarPointsPrev,
 
         cout << "TTC: " << TTC << endl;
     }
+    t = ((double)cv::getTickCount() - t) / cv::getTickFrequency();
+    if (displayTime) cout << "ComputeTTCLidar took " << 1000 * t / 1.0 << " ms" << endl;
 }
 
 
@@ -247,6 +347,9 @@ void matchBoundingBoxes(std::vector<cv::DMatch> &matches, std::map<int, int> &bb
     std::map<std::pair<int, int>, int> possibleBBMatches; 
     std::multimap<int, std::pair<int, int>>rv_possibleBBMatches;
     std::set<int> k1s, k2s;
+    bool displayTime = true;
+
+    double t = (double)cv::getTickCount();
     // for all keypoint matches...
     for(auto &it: matches)
     {   
@@ -308,8 +411,8 @@ void matchBoundingBoxes(std::vector<cv::DMatch> &matches, std::map<int, int> &bb
     }
     if(printDebugMsg)
         {   
-            cout << endl << endl<< "Possible matches report" << endl;
-            for (auto &it : possibleBBMatches) cout << "{" << it.first.first << ", "<< it.first.second << "}" << " Counter: " << it.second << endl;
+            std::cout << endl << endl<< "Possible matches report" << endl;
+            for (auto &it : possibleBBMatches) std::cout << "{" << it.first.first << ", "<< it.first.second << "}" << " Counter: " << it.second << endl;
 
         }
     
@@ -322,8 +425,8 @@ void matchBoundingBoxes(std::vector<cv::DMatch> &matches, std::map<int, int> &bb
     }
     if(printDebugMsg)
         {   
-            cout << endl << endl<< "Possible BB matches in order" << endl;
-            for (auto &it : rv_possibleBBMatches) cout << "{" << it.second.first << ", "<< it.second.second << "}" << " Counter: " << it.first << endl;
+            std::cout << endl << endl<< "Possible BB matches in order" << endl;
+            for (auto &it : rv_possibleBBMatches) std::cout << "{" << it.second.first << ", "<< it.second.second << "}" << " Counter: " << it.first << endl;
 
         }
 
@@ -342,9 +445,11 @@ void matchBoundingBoxes(std::vector<cv::DMatch> &matches, std::map<int, int> &bb
     
     if(printDebugMsg)
         {   
-            cout << endl << endl<< "Best matches return value" << endl;
-            for (auto it:bbBestMatches) cout << "{" << it.first << ", "<< it.second << "}"  << endl;
+            std::cout << endl << endl<< "Best matches return value" << endl;
+            for (auto it:bbBestMatches) std::cout << "{" << it.first << ", "<< it.second << "}"  << endl;
 
         }
     
+     t = ((double)cv::getTickCount() - t) / cv::getTickFrequency();
+    if (displayTime) cout << "MatchBoundingBoxes took " << 1000 * t / 1.0 << " ms" << endl;
 }
