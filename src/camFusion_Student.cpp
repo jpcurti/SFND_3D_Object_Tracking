@@ -159,7 +159,6 @@ void clusterKptMatchesWithROI(BoundingBox &boundingBox, std::vector<cv::KeyPoint
                 }
  
             }
-            
         }
     }
     if(printDebugMsg)
