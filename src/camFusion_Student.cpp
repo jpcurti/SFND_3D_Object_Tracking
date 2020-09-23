@@ -178,7 +178,7 @@ void clusterKptMatchesWithROI(BoundingBox &boundingBox, std::vector<cv::KeyPoint
 
     }
     t = ((double)cv::getTickCount() - t) / cv::getTickFrequency();
-    if (displayTime) cout << "ClusterKptMatchesWithROI took " << 1000 * t / 1.0 << " ms" << endl;
+    if (displayTime) std::cout << "ClusterKptMatchesWithROI took " << 1000 * t / 1.0 << " ms" << endl;
 }
 
 
@@ -257,7 +257,7 @@ void computeTTCCamera(std::vector<cv::KeyPoint> &kptsPrev, std::vector<cv::KeyPo
      TTC = -dT / (1 - medianDistRatio);
 
     t = ((double)cv::getTickCount() - t) / cv::getTickFrequency();
-    if (displayTime) cout << "ComputeTTCCamera took " << 1000 * t / 1.0 << " ms" << endl;
+    if (displayTime) std::cout << "ComputeTTCCamera took " << 1000 * t / 1.0 << " ms" << endl;
 }
 
 
@@ -311,31 +311,31 @@ void computeTTCLidar(std::vector<LidarPoint> &lidarPointsPrev,
     if(printDebugMsg)    
     {   
       
-        cout << endl << "ClosestsPointsPrev" << endl;
+        std::cout << endl << "ClosestsPointsPrev" << endl;
        
         auto itTemp =closestPointsPrev.begin();
         for( int i=0; i<(closestPointsPrev.size()*closestPointsBufferInPercentage)/2;i++ )
         {
-            cout << "[" << i << "] " << "x: " << *itTemp << endl;
+            std::cout << "[" << i << "] " << "x: " << *itTemp << endl;
             itTemp++;
         }
-        cout << "Median value is " << "x: " << medianClosestsPointPrev << endl;
+        std::cout << "Median value is " << "x: " << medianClosestsPointPrev << endl;
 
-        cout << endl << "ClosestsPointsCurr" << endl;
+        std::cout << endl << "ClosestsPointsCurr" << endl;
        
         itTemp =closestPointsCurr.begin();
         for ( int i=0; i<(closestPointsCurr.size()*closestPointsBufferInPercentage)/2;i++ )
         {
-            cout << "[" << i << "] " << "x: " << *itTemp << endl;
+            std::cout << "[" << i << "] " << "x: " << *itTemp << endl;
             itTemp++;
         
         }
-        cout << "Median value is " << "x: " << medianClosestsPointCurr << endl;
+        std::cout << "Median value is " << "x: " << medianClosestsPointCurr << endl;
 
-        cout << "TTC: " << TTC << endl;
+        std::cout << "TTC: " << TTC << endl;
     }
     t = ((double)cv::getTickCount() - t) / cv::getTickFrequency();
-    if (displayTime) cout << "ComputeTTCLidar took " << 1000 * t / 1.0 << " ms" << endl;
+    if (displayTime) std::cout << "ComputeTTCLidar took " << 1000 * t / 1.0 << " ms" << endl;
 }
 
 
@@ -353,7 +353,7 @@ void matchBoundingBoxes(std::vector<cv::DMatch> &matches, std::map<int, int> &bb
     for(auto &it: matches)
     {   
         
-        if(printDebugMsg) cout << endl << "Loop for Match with prev keypoint: " << it.queryIdx << " and current keypoint " << it.trainIdx <<endl; 
+        if(printDebugMsg) std::cout << endl << "Loop for Match with prev keypoint: " << it.queryIdx << " and current keypoint " << it.trainIdx <<endl; 
 
         //Check if the prev keypoint (queryIdx) is within one or more boundary box(es) in the previous Frame
         for (auto &bb: prevFrame.boundingBoxes)
@@ -365,10 +365,10 @@ void matchBoundingBoxes(std::vector<cv::DMatch> &matches, std::map<int, int> &bb
                 if(printDebugMsg)
                 {
                     
-                    cout <<" PrevFrame: Keypoint  "  << it.queryIdx <<  " found on BB " << bb.boxID <<  endl;
+                    std::cout <<" PrevFrame: Keypoint  "  << it.queryIdx <<  " found on BB " << bb.boxID <<  endl;
                     
-                    //cout << "Keypoint  with ID " << it.queryIdx << " and position x: " << prevFrame.keypoints[it.queryIdx].pt.x << ", y: " << prevFrame.keypoints[it.queryIdx].pt.y << endl;
-                    //cout << "Is inside BoundaryBox with ID " << bb.boxID <<  "and position x: " << bb.roi.x  << ", y: " << bb.roi.x << ", width :" << bb.roi.width<< ", height: "<< bb.roi.height<< endl;
+                    //std::cout << "Keypoint  with ID " << it.queryIdx << " and position x: " << prevFrame.keypoints[it.queryIdx].pt.x << ", y: " << prevFrame.keypoints[it.queryIdx].pt.y << endl;
+                    //std::cout << "Is inside BoundaryBox with ID " << bb.boxID <<  "and position x: " << bb.roi.x  << ", y: " << bb.roi.x << ", width :" << bb.roi.width<< ", height: "<< bb.roi.height<< endl;
                 }
                         //Check if the current keypoint (trainIdx) is within one or more boundary box(es) in the previous Frame
                 for (auto &bb2: currFrame.boundingBoxes)
@@ -378,10 +378,10 @@ void matchBoundingBoxes(std::vector<cv::DMatch> &matches, std::map<int, int> &bb
                         if(printDebugMsg)
                         {
                         
-                            cout <<"currFrame: Keypoint  "  << it.trainIdx <<  " found on BB " << bb2.boxID <<  endl;
-                            //cout << "Keypoint (curr) with ID " << it.trainIdx << " and position x: " << currFrame.keypoints[it.trainIdx].pt.x << ", y: " << currFrame.keypoints[it.trainIdx].pt.y << endl;
-                            //cout << "Is inside BoundaryBox with ID " << bb2.boxID <<  "and position x: " << bb2.roi.x  << ", y: " << bb2.roi.x << ", width :" << bb2.roi.width<< ", height: "<< bb2.roi.height<< endl;
-                            cout <<"Possible BB match. Prev Frame BB: "  << bb.boxID <<  " Curr Frame BB: " << bb2.boxID <<  endl;
+                            std::cout <<"currFrame: Keypoint  "  << it.trainIdx <<  " found on BB " << bb2.boxID <<  endl;
+                            //std::cout << "Keypoint (curr) with ID " << it.trainIdx << " and position x: " << currFrame.keypoints[it.trainIdx].pt.x << ", y: " << currFrame.keypoints[it.trainIdx].pt.y << endl;
+                            //std::cout << "Is inside BoundaryBox with ID " << bb2.boxID <<  "and position x: " << bb2.roi.x  << ", y: " << bb2.roi.x << ", width :" << bb2.roi.width<< ", height: "<< bb2.roi.height<< endl;
+                            std::cout <<"Possible BB match. Prev Frame BB: "  << bb.boxID <<  " Curr Frame BB: " << bb2.boxID <<  endl;
                             if(bWait) cv::waitKey(0);
                         }
 
@@ -450,5 +450,5 @@ void matchBoundingBoxes(std::vector<cv::DMatch> &matches, std::map<int, int> &bb
         }
     
      t = ((double)cv::getTickCount() - t) / cv::getTickFrequency();
-    if (displayTime) cout << "MatchBoundingBoxes took " << 1000 * t / 1.0 << " ms" << endl;
+    if (displayTime) std::cout << "MatchBoundingBoxes took " << 1000 * t / 1.0 << " ms" << endl;
 }
