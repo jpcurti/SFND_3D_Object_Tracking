@@ -19,9 +19,8 @@ In this final project, you will implement the missing parts in the schematic. To
   * Windows: [Click here for installation instructions](http://gnuwin32.sourceforge.net/packages/make.htm)
 * Git LFS
   * Weight files are handled using [LFS](https://git-lfs.github.com/)
-* OpenCV >= 4.1
-  * This must be compiled from source using the `-D OPENCV_ENABLE_NONFREE=ON` cmake flag for testing the SIFT and SURF detectors.
-  * The OpenCV 4.1.0 source code can be found [here](https://github.com/opencv/opencv/tree/4.1.0)
+* Conan >=1.29.1
+
 * gcc/g++ >= 5.4
   * Linux: gcc / g++ is installed by default on most Linux distros
   * Mac: same deal as make - [install Xcode command line tools](https://developer.apple.com/xcode/features/)
@@ -31,6 +30,5 @@ In this final project, you will implement the missing parts in the schematic. To
 
 1. Clone this repo.
 1.1. Important: Download the YoloV3 weights in the folder dat/yolo using the command wget https://pjreddie.com/media/files/yolov3.weights 
-2. Make a build directory in the top level project directory: `mkdir build && cd build`
-3. Compile: `cmake .. && make`
+2.  New: Building and compiling with conan in the top level project directory: `conan install . -if build --build=opencv && conan build . -bf build && cd build`
 4. Run it: `./3D_object_tracking`.
